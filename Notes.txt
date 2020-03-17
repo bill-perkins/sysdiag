@@ -1,0 +1,12 @@
+# Notes for system diagnostics program:
+.ini file to have:
+- datestamp
+- systemname
+- disk count
+- disk names (list of directories to track usage of)
+
+Program to read .ini file, verify that:
+- system name is same as $HOSTNAME
+- disk names are available
+
+# EOF:
