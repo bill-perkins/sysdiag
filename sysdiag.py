@@ -1,6 +1,8 @@
 #!/usr/bin/python
 #
 # simple script to provide some diagnostics on local system
+#
+# (we probably want to turn this into a class)
 
 # imports:
 import os
@@ -110,28 +112,29 @@ def get_diskdict(disklist):
 # -----------------------------------------------------------------------------
 # --- main part of the program:
 # -----------------------------------------------------------------------------
-initialize()
+if __name__ == '__main__':
+    initialize()
 
-print "disk_count:", disk_count
-print "disk list :", disklist
-print "datestamp :", datestamp
+    print "disk_count:", disk_count
+    print "disk list :", disklist
+    print "datestamp :", datestamp
 
-hostname = os.environ.get('HOSTNAME')
-if sysname != hostname:
-    print "system_name entry '" + sysname,"' not the same as $HOSTNAME '" + hostname + "'"
-else:
-    print "sysname   :", sysname
+    hostname = os.environ.get('HOSTNAME')
+    if sysname != hostname:
+        print "system_name entry '" + sysname,"' not the same as $HOSTNAME '" + hostname + "'"
+    else:
+        print "sysname   :", sysname
 
-# get disk dictionary:
-disk_dict = get_diskdict(disklist)
+    # get disk dictionary:
+    disk_dict = get_diskdict(disklist)
 
-## --- pretty-print the disk usage:
-for disk in disk_dict:
-    p = disk_dict[disk]
-    print disk, \
-            "size:", humanize(p[0]), \
-            "used:", humanize(p[1]), \
-            "free:", humanize(p[2]), \
-            "%used:", '{:3.1f}'.format(p[3])
+    ## --- pretty-print the disk usage:
+    for disk in disk_dict:
+        p = disk_dict[disk]
+        print disk, \
+                "size:", humanize(p[0]), \
+                "used:", humanize(p[1]), \
+                "free:", humanize(p[2]), \
+                "%used:", '{:3.1f}'.format(p[3])
 
 # EOF:
