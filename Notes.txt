@@ -9,4 +9,13 @@ Program to read .ini file, verify that:
 - system name is same as $HOSTNAME
 - disk names are available
 
+Program to determine memory size
+Program to determine swap statistics
+Program to determine network status
+Program to run a sysping
+
+use:
+if __name__ == '__main__':
+  main()
+
 # EOF:
