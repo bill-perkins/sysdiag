@@ -1,11 +1,13 @@
 #!/usr/bin/python
 #
 # simple script to provide some diagnostics on local system
+# uses a .ini file for system-specific paramters
 #
 
 # imports:
 import os
 import subprocess
+import sys
 
 # -----------------------------------------------------------------------------
 # class Diag
@@ -31,6 +33,8 @@ class Diag:
     # humanize(float)
     # -----------------------------------------------------------------------------
     def humanize(self, f):
+        """turn an integer into a human-readable format
+        """
         if f < 1024:
             return str(f) + "B"
 
@@ -46,6 +50,8 @@ class Diag:
     # diskstat(name)
     # -----------------------------------------------------------------------------
     def diskstat(self, name):
+        """get stats on a given disk name
+        """
         stat = os.statvfs(name)
         size = stat.f_frsize * stat.f_blocks
         free = stat.f_frsize * stat.f_bfree
@@ -57,6 +63,8 @@ class Diag:
     # diskdict_get(disklist)
     # -----------------------------------------------------------------------------
     def disk_get(self):
+        """create dictionary for the disks in disklist
+        """
         for disk in self.disklist:
             td = dict()
             name, size, used, free, usep = self.diskstat(disk)
@@ -71,6 +79,8 @@ class Diag:
     # pretty-print the disk usage:
     # -----------------------------------------------------------------------------
     def disk_print(self):
+        """pretty-print the disk stats
+        """
         for disk in self.disk_dict:
             p = self.disk_dict[disk]
             print "    ", disk, \
@@ -83,6 +93,8 @@ class Diag:
     # swapmem_get()
     # -----------------------------------------------------------------------------
     def swapmem_get(self):
+        """get memory and swap information
+        """
         work = subprocess.check_output(['/usr/bin/free'], stderr=subprocess.STDOUT)
         work_strings = work.split('\n')
         headings     = work_strings[0].split()
@@ -99,6 +111,8 @@ class Diag:
     # swapmem_print()
     # -----------------------------------------------------------------------------
     def swapmem_print(self):
+        """pretty-print the memory and swap information
+        """
         print "    memory:"
         p = self.mem_dict
         print "        available:", self.humanize(p['available'])
@@ -120,6 +134,8 @@ class Diag:
     # cpuload_get()
     # -----------------------------------------------------------------------------
     def cpuload_get(self):
+        """get current load information for each CPU
+        """
         cpu_string = subprocess.check_output(['/usr/bin/mpstat','-P','ALL'], stderr=subprocess.STDOUT)
         cpu_array = cpu_string.split('\n')
         headings =  cpu_array[2].split()
@@ -144,7 +160,7 @@ class Diag:
     # cpuload_print()
     # -----------------------------------------------------------------------------
     def cpuload_print(self):
-        """print CPU load info we've collected
+        """pretty-print CPU load info we've collected
         """
         for i in range(0, self.cpu_count):
             print "    CPU", str(i) + ":",
@@ -156,7 +172,7 @@ class Diag:
     # netstat_get()
     # -----------------------------------------------------------------------------
     def netstat_get(self):
-        """init netstat info
+        """get netstat info
         """
         net_string = subprocess.check_output(['/usr/sbin/ifconfig', self.net_interface], \
                 stderr=subprocess.STDOUT)
@@ -183,7 +199,8 @@ class Diag:
     # netstat_print()
     # -----------------------------------------------------------------------------
     def netstat_print(self):
-        #print self.netstat
+        """pretty-print the network information
+        """
         print "    interface:", self.netstat['header']
         print "    address:  ", self.netstat['address']
         print "    RX errors:", self.netstat['rx_errors']
@@ -196,7 +213,12 @@ class Diag:
         """Bring in the local .ini file
         """
         my_ini = __file__ + ".ini"
-        inp = open(my_ini, "r")
+        try:
+            inp = open(my_ini, "r")
+        except IOError as error:
+            print "File", my_ini + ":", error.strerror
+            sys.exit(1)
+
         lines = inp.readlines()
         inp.close()
 
