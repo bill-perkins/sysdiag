@@ -1,5 +1,4 @@
 #!/usr/bin/python
-#
 # simple script to provide some diagnostics on local system
 # uses a .ini file for system-specific paramters
 #
@@ -8,6 +7,8 @@
 import os
 import subprocess
 import sys
+from datetime import datetime
+import pprint
 
 # -----------------------------------------------------------------------------
 # class Diag
@@ -17,23 +18,25 @@ class Diag:
     """
     # instance variables:
     cpu_count = 0
-    cpu_info = dict()
-    cpu_load = ''
+    cpus = dict()
     datestamp = ''
-    disklist = []
+    disk_list = []
     disk_count = 0
-    disk_dict = dict()
-    mem_dict = dict()
-    netstat = dict()
+    disks = dict()
+    memory = dict()
+    network = dict()
     net_interface = ''
-    swap_dict = dict()
+    services_list = []
+    services = dict()
+    swapinfo = dict()
     sysname = ''
+    uptime = ''
 
     # -----------------------------------------------------------------------------
-    # humanize(float)
+    # humanize(number)
     # -----------------------------------------------------------------------------
     def humanize(self, f):
-        """turn an integer into a human-readable format
+        """turn an integer into human-readable format
         """
         if f < 1024:
             return str(f) + "B"
@@ -47,33 +50,33 @@ class Diag:
         return '{:3.1f}'.format(f / 1024.0 / 1024 / 1024) + "G"
 
     # -----------------------------------------------------------------------------
-    # diskstat(name)
+    # disk_stat(name)
     # -----------------------------------------------------------------------------
-    def diskstat(self, name):
+    def disk_stat(self, name):
         """get stats on a given disk name
         """
         stat = os.statvfs(name)
         size = stat.f_frsize * stat.f_blocks
         free = stat.f_frsize * stat.f_bfree
         used = size - free
-        usep = (1.0 - (float(free) / float(size))) * 100.0
+        usep = ((1.0 - (float(free) / float(size))) * 100.0) + 0.5
         return name, size, used, free, usep
 
     # -----------------------------------------------------------------------------
-    # diskdict_get(disklist)
+    # disks_load(disk_list)
     # -----------------------------------------------------------------------------
-    def disk_get(self):
-        """create dictionary for the disks in disklist
+    def disks_load(self):
+        """create dictionary for the disks in disk_list
         """
-        for disk in self.disklist:
+        for disk in self.disk_list:
             td = dict()
-            name, size, used, free, usep = self.diskstat(disk)
+            name, size, used, free, usep = self.disk_stat(disk)
             td['name'] = name
             td['size'] = size
             td['used'] = used
             td['free'] = free
             td['usep'] = usep
-            self.disk_dict[name] = td #[size, used, free, usep]
+            self.disks[name] = td #[size, used, free, usep]
 
     # -----------------------------------------------------------------------------
     # pretty-print the disk usage:
@@ -81,8 +84,8 @@ class Diag:
     def disk_print(self):
         """pretty-print the disk stats
         """
-        for disk in self.disk_dict:
-            p = self.disk_dict[disk]
+        for disk in self.disks:
+            p = self.disks[disk]
             print "    ", disk, \
                     "size:", self.humanize(p['size']), \
                     "used:", self.humanize(p['used']), \
@@ -90,9 +93,9 @@ class Diag:
                     "%used:", '{:3.1f}'.format(p['usep'])
 
     # -----------------------------------------------------------------------------
-    # swapmem_get()
+    # swapmem_load()
     # -----------------------------------------------------------------------------
-    def swapmem_get(self):
+    def swapmem_load(self):
         """get memory and swap information
         """
         work = subprocess.check_output(['/usr/bin/free'], stderr=subprocess.STDOUT)
@@ -102,10 +105,10 @@ class Diag:
         swap         = work_strings[2].split()
 
         for i in range(1, len(headings) + 1):
-            self.mem_dict[headings[i - 1]] = int(mem[i])
+            self.memory[headings[i - 1]] = int(mem[i])
 
         for i in range(1, len(swap)):
-            self.swap_dict[headings[i - 1]] = int(swap[i])
+            self.swapinfo[headings[i - 1]] = int(swap[i])
 
     # -----------------------------------------------------------------------------
     # swapmem_print()
@@ -114,7 +117,7 @@ class Diag:
         """pretty-print the memory and swap information
         """
         print "    memory:"
-        p = self.mem_dict
+        p = self.memory
         print "        available:", self.humanize(p['available'])
         print "             used:", self.humanize(p['used'])
         print "             free:", self.humanize(p['free'])
@@ -124,71 +127,72 @@ class Diag:
         print
 
         print "    swap:"
-        p = self.swap_dict
+        p = self.swapinfo
         print "            total:", self.humanize(p['total'])
         print "             free:", self.humanize(p['free'])
         print "             used:", self.humanize(p['used'])
         print
 
     # -----------------------------------------------------------------------------
-    # cpuload_get()
+    # cpus_load()
     # -----------------------------------------------------------------------------
-    def cpuload_get(self):
+    def cpus_load(self):
         """get current load information for each CPU
         """
         cpu_string = subprocess.check_output(['/usr/bin/mpstat','-P','ALL'], stderr=subprocess.STDOUT)
         cpu_array = cpu_string.split('\n')
+
+        # headings holds the keys to cpus dictionary:
         headings =  cpu_array[2].split()
         headings[0] = 'Time'
         headings[1] = 'AM/PM'
 
         self.cpu_count = len(cpu_array) - 5
-        self.cpu_info['headings'] = headings
 
         for line in range(4, len(cpu_array) - 1):
             cpu_parts = cpu_array[line].split()
             td = dict()
 
             i = 0
-            for hdr in self.cpu_info['headings']:
+            for hdr in headings:
                 td[hdr] = cpu_parts[i]
                 i += 1
 
-            self.cpu_info[cpu_parts[2]] = td
+            self.cpus[cpu_parts[2]] = td
 
     # -----------------------------------------------------------------------------
-    # cpuload_print()
+    # cpus_print()
     # -----------------------------------------------------------------------------
-    def cpuload_print(self):
+    def cpus_print(self):
         """pretty-print CPU load info we've collected
         """
         for i in range(0, self.cpu_count):
             print "    CPU", str(i) + ":",
-            x = self.cpu_info[str(i)]
+            x = self.cpus[str(i)]
 
             print x['%idle'] + '% idle'
 
     # -----------------------------------------------------------------------------
-    # netstat_get()
+    # network_load()
     # -----------------------------------------------------------------------------
-    def netstat_get(self):
-        """get netstat info
+    def network_load(self):
+        """get network info
         """
         net_string = subprocess.check_output(['/usr/sbin/ifconfig', self.net_interface], \
                 stderr=subprocess.STDOUT)
         net_lines = net_string.split('\n')
-        self.netstat['header'] = net_lines[0]
-        self.netstat['address'] = net_lines[1].split()[1]
+        self.network['header'] = net_lines[0]
+        self.network['address'] = net_lines[1].split()[1]
 
         parts = net_lines[5].split()
-        self.netstat['rx_errors'] = { \
+        self.network['rx_errors'] = { \
                 'errors':   parts[2], \
                 'dropped':  parts[4], \
                 'overruns': parts[6], \
                 'frame':    parts[8] }
 
         parts = net_lines[7].split()
-        self.netstat['tx_errors'] = { \
+        self.network['tx_errors'] = { \
                 'errors':     parts[2], \
                 'dropped':    parts[4], \
                 'overruns':   parts[6], \
@@ -196,15 +200,41 @@ class Diag:
                 'collisions': parts[10] }
 
     # -----------------------------------------------------------------------------
-    # netstat_print()
+    # service_check()
     # -----------------------------------------------------------------------------
-    def netstat_print(self):
+    def service_check(self, svc):
+        """check given service,
+           returns tokens 2 & 3 from line 3 of systemctl status:
+           'active/dead/whatever', 'running/stopped/dead/missing'
+        """
+        try:
+            work = subprocess.check_output(['/usr/bin/systemctl','status',svc], stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as error:
+            work = error.output
+
+        # take work, split it into lines, take the 3rd line, split it into parts:
+        parts = work.split('\n')[2].split()
+        return parts[1], parts[2]
+
+    # -----------------------------------------------------------------------------
+    # services_load()
+    # -----------------------------------------------------------------------------
+    def services_load(self):
+        """gather services info into services dictionary
+        """
+        for svc in self.services_list:
+            self.services[svc] = self.service_check(svc)
+
+    # -----------------------------------------------------------------------------
+    # network_print()
+    # -----------------------------------------------------------------------------
+    def network_print(self):
         """pretty-print the network information
         """
-        print "    interface:", self.netstat['header']
-        print "    address:  ", self.netstat['address']
-        print "    RX errors:", self.netstat['rx_errors']
-        print "    TX errors:", self.netstat['tx_errors']
+        print "    interface:", self.network['header']
+        print "    address:  ", self.network['address']
+        print "    RX errors:", self.network['rx_errors']
+        print "    TX errors:", self.network['tx_errors']
 
     # -----------------------------------------------------------------------------
     # __init__()
@@ -229,24 +259,31 @@ class Diag:
 
             # we have key:value pairs
             entrylist = line.split()
-            if entrylist[0] == 'datestamp':
-                self.datestamp = entrylist[1]
 
+            work = subprocess.check_output(['/usr/bin/w'], stderr=subprocess.STDOUT)
+            self.uptime = ' '.join(work.split('\n')[0].split()[2:])
             if entrylist[0] == "system_name":
                 self.sysname = entrylist[1]
-
-            if entrylist[0] == "disk_list":
-                self.disk_count = len(entrylist) - 1
-                for i in range(1, self.disk_count + 1):
-                    self.disklist.append(entrylist[i])
 
             if entrylist[0] == "network":
                 self.net_interface = entrylist[1]
 
-        self.disk_get()
-        self.cpuload_get()
-        self.swapmem_get()
-        self.netstat_get()
+            if entrylist[0] == "service":
+                self.services_list.append(entrylist[1])
+
+            if entrylist[0] == "disk_list":
+                self.disk_count = len(entrylist) - 1
+                for i in range(1, self.disk_count + 1):
+                    self.disk_list.append(entrylist[i])
+
+        work = subprocess.check_output(['/usr/bin/w'], stderr=subprocess.STDOUT)
+
+        self.datestamp = datetime.now().strftime("%Y%m%d %H:%M:%S")
+        self.disks_load()
+        self.cpus_load()
+        self.swapmem_load()
+        self.network_load()
+        self.services_load()
 
 # end of Class Diag
 
@@ -256,19 +293,21 @@ class Diag:
 # -----------------------------------------------------------------------------
 if __name__ == '__main__':
     diag = Diag()
+    broken = False
 
-    hostname = os.environ.get('HOSTNAME')
-    if diag.sysname != hostname:
+    hostname = subprocess.check_output(['/usr/bin/hostname'], stderr=subprocess.STDOUT)
+    if diag.sysname != hostname.rstrip():
         print "system_name entry '" + diag.sysname + \
-                "' not the same as $HOSTNAME '" + hostname + "'"
+                "' not the same as '" + str(hostname) + "'"
     else:
         print "system:    ", diag.sysname
 
+    print "uptime:    ", diag.uptime
     print
 
     print "datestamp: ", diag.datestamp
     print "disk_count:", diag.disk_count
-    print "disk list: ", diag.disklist
+    print "disk list: ", diag.disk_list
     print "network:   ", diag.net_interface
     print
 
@@ -277,7 +316,7 @@ if __name__ == '__main__':
     print
 
     print "CPU loads:"
-    diag.cpuload_print()
+    diag.cpus_print()
     print
 
     print "Memory and Swap space:"
@@ -285,8 +324,41 @@ if __name__ == '__main__':
     print
 
     print "Network info:"
-    diag.netstat_print()
+    diag.network_print()
     print
+
+    print "Services:"
+    for svc in diag.services:
+        x = diag.services[svc]
+        if x[0] != 'active' or x[1] != '(running)':
+            print "    " + svc + ":", diag.services[svc]
+            broken = True
+
+    if not broken:
+        print "    all", str(len(diag.services)) + " services are running"
+
+    """ use this when we want to examine the dictionaries:
+    pp = pprint.PrettyPrinter(indent=4)
+    print
+    print "CPU dictionary:"
+    pp.pprint(diag.cpus)
+    print
+    print "disks dictionary:"
+    pp.pprint(diag.disks)
+    print
+    print "memory dictionary:"
+    pp.pprint(diag.memory)
+    print
+    print "network dictionary:"
+    pp.pprint(diag.network)
+    print
+    print "swap dictionary:"
+    pp.pprint(diag.swapinfo)
+    print
+    print "services dictionary:"
+    pp.pprint(diag.services)
+    print
+#   """
 
 # -----------------------------------------------------------------------------
 # 
