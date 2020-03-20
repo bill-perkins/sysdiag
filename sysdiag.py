@@ -84,13 +84,14 @@ class Diag:
     def disk_print(self):
         """pretty-print the disk stats
         """
-        for disk in self.disks:
-            p = self.disks[disk]
-            print "    ", disk, \
-                    "size:", self.humanize(p['size']), \
-                    "used:", self.humanize(p['used']), \
-                    "free:", self.humanize(p['free']), \
-                    "%used:", '{:3.1f}'.format(p['usep'])
+        for index in self.disk_list:
+            p = self.disks[index]
+            x = index.ljust(16) + \
+                    "size: " + self.humanize(p['size']).rjust(7)+ \
+                    "  used: " + self.humanize(p['used']).rjust(7)+ \
+                    "  free: " + self.humanize(p['free']).rjust(7)+ \
+                    "  %used: " + '{:3.1f}'.format(p['usep']).rjust(4)
+            print "    " + x
 
     # -----------------------------------------------------------------------------
     # swapmem_load()
@@ -118,19 +119,19 @@ class Diag:
         """
         print "    memory:"
         p = self.memory
-        print "        available:", self.humanize(p['available'])
-        print "             used:", self.humanize(p['used'])
-        print "             free:", self.humanize(p['free'])
-        print "       buff/cache:", self.humanize(p['buff/cache'])
-        print "           shared:", self.humanize(p['shared'])
-        print "            total:", self.humanize(p['total'])
+        print "             used:", self.humanize(p['used']).rjust(7)
+        print "        available:", self.humanize(p['available']).rjust(7)
+        print "             free:", self.humanize(p['free']).rjust(7)
+        print "       buff/cache:", self.humanize(p['buff/cache']).rjust(7)
+        print "           shared:", self.humanize(p['shared']).rjust(7)
+        print "            total:", self.humanize(p['total']).rjust(7)
         print
 
         print "    swap:"
         p = self.swapinfo
-        print "            total:", self.humanize(p['total'])
-        print "             free:", self.humanize(p['free'])
-        print "             used:", self.humanize(p['used'])
+        print "             used:", self.humanize(p['used']).rjust(7)
+        print "             free:", self.humanize(p['free']).rjust(7)
+        print "            total:", self.humanize(p['total']).rjust(7)
         print
 
     # -----------------------------------------------------------------------------
@@ -213,7 +214,11 @@ class Diag:
             work = error.output
 
         # take work, split it into lines, take the 3rd line, split it into parts:
-        parts = work.split('\n')[2].split()
+        try:
+            parts = work.split('\n')[2].split()
+        except IndexError as error:
+            return work #.split['\n'] #[2]
+
         return parts[1], parts[2]
 
     # -----------------------------------------------------------------------------
@@ -232,9 +237,19 @@ class Diag:
         """pretty-print the network information
         """
         print "    interface:", self.network['header']
-        print "    address:  ", self.network['address']
-        print "    RX errors:", self.network['rx_errors']
-        print "    TX errors:", self.network['tx_errors']
+        print "      address:", self.network['address']
+
+        print "    RX errors:",
+        x = self.network['rx_errors']
+        for k,v in x.items():
+            print k + ":", v,
+        print
+
+        print "    TX errors:",
+        x = self.network['tx_errors']
+        for k,v in x.items():
+            print k + ":", v,
+        print
 
     # -----------------------------------------------------------------------------
     # __init__()
@@ -279,10 +294,9 @@ class Diag:
             if entrylist[0] == "service":
                 self.services_list.append(entrylist[1])
 
-            if entrylist[0] == "disk_list":
-                self.disk_count = len(entrylist) - 1
-                for i in range(1, self.disk_count + 1):
-                    self.disk_list.append(entrylist[i])
+            if entrylist[0] == "disk":
+                self.disk_count += 1
+                self.disk_list.append(entrylist[1])
 
         self.datestamp = datetime.now().strftime("%Y%m%d %H:%M:%S")
         self.disks_load()
@@ -293,11 +307,81 @@ class Diag:
 
 # end of Class Diag
 
+# -----------------------------------------------------------------------------
+# create the .ini file:
+# -----------------------------------------------------------------------------
+def create_ini():
+    sysname  = subprocess.check_output(['/usr/bin/hostname'], stderr=subprocess.STDOUT)
+    disks    = subprocess.check_output(['/usr/bin/df'], stderr=subprocess.STDOUT)
+    network  = subprocess.check_output(['/usr/sbin/ifconfig'], stderr=subprocess.STDOUT)
+    services = subprocess.check_output(['/bin/ls','/etc/init.d/'], stderr=subprocess.STDOUT)
+
+    # ---------------------------------
+    print "system_name", sysname.rstrip()
+    print
+
+    # --- disks:
+    print "# disks: please edit:"
+    disklines = disks.split('\n')
+    for line in disklines:
+        if "tmpfs" in line:
+            continue;
+
+        parts = line.split()
+        if len(parts) != 6:
+            continue;
+
+        print "disk", parts[5]
+    print
+
+    # --- network interface:
+    netlines = network.split('\n')
+    counter = 0
+    outlines = ''
+    for line in netlines:
+        if "RUNNING" in line:
+            parts = line.split()
+            if parts[0] != "lo:":
+                outlines += "network " + str(parts[0][:-1]) + "\n"
+                counter += 1
+
+    if counter == 0:
+        print "# !!! no running network interfaces found !!!"
+        print
+    elif counter > 1:
+        print "# network: choose one:"
+        print outlines
+    else:
+        print "# network:"
+        print outlines
+
+    # --- available services:
+    print "# services: please edit:"
+    l = services.split('\n')
+    for s in l:
+        if len(s) > 0:
+            print "service", s
+    print
+
+    # --- the end:
+    print "# EOF:"
 
 # -----------------------------------------------------------------------------
 # main part of the program:
 # -----------------------------------------------------------------------------
 if __name__ == '__main__':
+    """If they give us a -c, create a .ini file.
+       If they give us anything else, print a usage message.
+       Otherwise, create a Diag instance and display what we find.
+    """
+    if len(sys.argv) > 1:
+        if sys.argv[1] == "-c":
+            create_ini()
+        else:
+            print "usage:", __file__, " [-c >new-ini-file] # creates new sysdiag.ini"
+
+        sys.exit(0)
+
     broken = False
     diag = Diag()
 
@@ -313,7 +397,6 @@ if __name__ == '__main__':
 
     print "datestamp: ", diag.datestamp
     print "disk_count:", diag.disk_count
-    print "disk list: ", diag.disk_list
     print "network:   ", diag.net_interface
     print
 
