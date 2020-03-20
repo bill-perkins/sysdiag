@@ -247,8 +247,10 @@ class Diag:
                disk_list   - the list of disks we want to monitor
                service     - multiple entries for systemctl services
         """
+
         my_path = os.path.dirname(__file__)
-        my_ini = my_path + "/sysdiag" + ".ini"
+        my_ini = my_path + "/sysdiag.ini"
+
         try:
             inp = open(my_ini, "r")
         except IOError as error:
@@ -263,7 +265,7 @@ class Diag:
             if len(line) == 1 or line.startswith('#'):
                 continue
 
-            # we have key:value pairs
+            # we have a key:value pair (hopefully)
             entrylist = line.split()
 
             work = subprocess.check_output(['/usr/bin/w'], stderr=subprocess.STDOUT)
@@ -281,8 +283,6 @@ class Diag:
                 self.disk_count = len(entrylist) - 1
                 for i in range(1, self.disk_count + 1):
                     self.disk_list.append(entrylist[i])
-
-        work = subprocess.check_output(['/usr/bin/w'], stderr=subprocess.STDOUT)
 
         self.datestamp = datetime.now().strftime("%Y%m%d %H:%M:%S")
         self.disks_load()
