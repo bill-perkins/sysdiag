@@ -8,7 +8,7 @@ import os
 import subprocess
 import sys
 from datetime import datetime
-import pprint
+#import pprint
 
 # -----------------------------------------------------------------------------
 # class Diag
@@ -241,8 +241,14 @@ class Diag:
     # -----------------------------------------------------------------------------
     def __init__(self):
         """Bring in the local .ini file
+           The following keys are recognized in the .ini file:
+               system_name - the FQDN of this system
+               network     - the network interface name, shown in ifconfig
+               disk_list   - the list of disks we want to monitor
+               service     - multiple entries for systemctl services
         """
-        my_ini = __file__ + ".ini"
+        my_path = os.path.dirname(__file__)
+        my_ini = my_path + "/sysdiag" + ".ini"
         try:
             inp = open(my_ini, "r")
         except IOError as error:
@@ -292,8 +298,8 @@ class Diag:
 # main part of the program:
 # -----------------------------------------------------------------------------
 if __name__ == '__main__':
-    diag = Diag()
     broken = False
+    diag = Diag()
 
     hostname = subprocess.check_output(['/usr/bin/hostname'], stderr=subprocess.STDOUT)
     if diag.sysname != hostname.rstrip():
