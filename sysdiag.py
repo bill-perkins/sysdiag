@@ -256,10 +256,11 @@ class Diag:
     # -----------------------------------------------------------------------------
     def __init__(self):
         """Bring in the local .ini file
+           The .ini file consists of comments, blank lines, and key-value pairs.
            The following keys are recognized in the .ini file:
                system_name - the FQDN of this system
                network     - the network interface name, shown in ifconfig
-               disk_list   - the list of disks we want to monitor
+               disk        - mulitple entries for disks we track
                service     - multiple entries for systemctl services
         """
 
@@ -275,16 +276,21 @@ class Diag:
         lines = inp.readlines()
         inp.close()
 
+        work = subprocess.check_output(['/usr/bin/w'], stderr=subprocess.STDOUT)
+        self.uptime = ' '.join(work.split('\n')[0].split()[2:])
+
         for line in lines:
             # skip blanks, comments:
-            if len(line) == 1 or line.startswith('#'):
+            if len(line) == 1 or line.startswith('#') or len(line.strip()) == 1:
                 continue
 
             # we have a key:value pair (hopefully)
-            entrylist = line.split()
+            entrylist = line.strip().split()
 
-            work = subprocess.check_output(['/usr/bin/w'], stderr=subprocess.STDOUT)
-            self.uptime = ' '.join(work.split('\n')[0].split()[2:])
+            if len(entrylist) != 2:
+                print "*** malformed line: '" + line + "'"
+                continue;
+
             if entrylist[0] == "system_name":
                 self.sysname = entrylist[1]
 
