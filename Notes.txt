@@ -1,9 +1,9 @@
 # Notes for system diagnostics program:
 .ini file to have:
-- datestamp
-- systemname
-- disk count
+- FQDN
 - disk names (list of directories to track usage of)
+- services list
+- network interface name
 
 Program to read .ini file, verify that:
 - system name is same as $HOSTNAME
