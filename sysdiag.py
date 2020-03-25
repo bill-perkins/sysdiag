@@ -24,12 +24,14 @@ class Diag:
     disk_count = 0
     disks = dict()
     memory = dict()
+    my_path = ''
     network = dict()
     net_interface = ''
     services_list = []
     services = dict()
     swapinfo = dict()
     sysname = ''
+    netping_lines = []
     uptime = ''
 
     # -----------------------------------------------------------------------------
@@ -204,6 +206,42 @@ class Diag:
                 'collisions': parts[10] }
 
     # -----------------------------------------------------------------------------
+    # netping_load()
+    # -----------------------------------------------------------------------------
+    def netping_load(self):
+        """do the sysping thing
+        """
+        names = []
+#        ips = []
+        pingoutput = ""
+        pingerrors = []
+
+        hostsfile = open("/etc/hosts","r")
+        hostslines = hostsfile.readlines()
+        hostsfile.close()
+
+        for line in hostslines:
+            # skip blanks, comments, localhost lines:
+            if len(line) == 1 or line.startswith('#') or line.startswith('127.0.0.1') or line.startswith('::1'):
+                continue
+
+            # we have what should be an IP address, output the last name:
+            entrylist = line.split()
+            names.append((str(entrylist[-1]), str(entrylist[0])))
+#            ips.append(str(entrylist[0])
+
+        for pinghost in names:
+            try:
+                pingoutput = subprocess.check_output(["/usr/bin/ping",'-c','1', pinghost[0]], stderr=subprocess.STDOUT)
+            except subprocess.CalledProcessError as error:
+                self.netping_lines.append("can't ping " + pinghost[0] + " by name, trying ip " + pinghost[1])
+                try:
+                    pingoutput = subprocess.check_output(["/usr/bin/ping",'-c','1', pinghost[1]], \
+                            stderr=subprocess.STDOUT)
+                except subprocess.CalledProcessError as error:
+                    self.netping_lines.append("can't ping " + pinghost[0] + " by ip: " + pinghost[1])
+
+    # -----------------------------------------------------------------------------
     # service_check()
     # -----------------------------------------------------------------------------
     def service_check(self, svc):
@@ -267,8 +305,8 @@ class Diag:
                service     - multiple entries for systemctl services
         """
 
-        my_path = os.path.dirname(__file__)
-        my_ini = my_path + "/sysdiag.ini"
+        self.my_path = os.path.dirname(__file__)
+        my_ini = self.my_path + "/sysdiag.ini"
 
         try:
             inp = open(my_ini, "r")
@@ -312,6 +350,7 @@ class Diag:
         self.cpus_load()
         self.swapmem_load()
         self.network_load()
+        self.netping_load()
         self.services_load()
 
 # end of Class Diag
@@ -423,6 +462,14 @@ if __name__ == '__main__':
 
     print "Network info:"
     diag.network_print()
+    print
+    print "Sysping:",
+    if len(diag.netping_lines) == 0:
+        print "OK"
+    else:
+        print
+        for l in diag.netping_lines:
+            print l
     print
 
     print "Services:"
