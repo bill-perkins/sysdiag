@@ -184,20 +184,24 @@ class Diag:
     def network_load(self):
         """get network info
         """
+        index = 5
         net_string = subprocess.check_output(['/usr/sbin/ifconfig', self.net_interface], \
                 stderr=subprocess.STDOUT)
         net_lines = net_string.split('\n')
         self.network['header'] = net_lines[0]
         self.network['address'] = net_lines[1].split()[1]
 
-        parts = net_lines[5].split()
+        if "inet6" not in net_lines[2]:
+            index =4
+
+        parts = net_lines[index].split()
         self.network['rx_errors'] = { \
                 'errors':   parts[2], \
                 'dropped':  parts[4], \
                 'overruns': parts[6], \
                 'frame':    parts[8] }
 
-        parts = net_lines[7].split()
+        parts = net_lines[index + 2].split()
         self.network['tx_errors'] = { \
                 'errors':     parts[2], \
                 'dropped':    parts[4], \
@@ -246,7 +250,7 @@ class Diag:
     def service_check(self, svc):
         """check given service,
            returns tokens 2 & 3 from line 3 of systemctl status:
-           'active/dead/whatever', 'running/stopped/dead/missing'
+           'active/dead/whatever', 'running/exited/stopped/dead/missing'
         """
         try:
             work = subprocess.check_output(['/usr/bin/systemctl','status',svc], stderr=subprocess.STDOUT)
@@ -259,6 +263,7 @@ class Diag:
         except IndexError as error:
             return work #.split['\n'] #[2]
 
+        # return active/inactive, (running/stopped/exited):
         return parts[1], parts[2]
 
     # -----------------------------------------------------------------------------
@@ -472,14 +477,20 @@ if __name__ == '__main__':
     print
 
     print "Services:"
+    svccount = len(diag.services)
+    svcrun   = svccount
+
     for svc in diag.services:
         x = diag.services[svc]
-        if x[0] != 'active' or x[1] != '(running)':
+        if x[0] != 'active' or (x[1] != '(running)' and x[1] != '(exited)'):
             print "    " + svc + ":", diag.services[svc]
             broken = True
+            svcrun -= 1
 
     if not broken:
-        print "    all", str(len(diag.services)) + " services are running"
+        print "    all", str(svcrun) + " services are running"
+    else:
+        print "    other", str(svcrun) + " services are running"
 
     print
 
