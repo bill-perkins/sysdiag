@@ -8,7 +8,7 @@ import os
 import subprocess
 import sys
 from datetime import datetime
-#import pprint
+import pprint
 
 # -----------------------------------------------------------------------------
 # class Diag
@@ -212,7 +212,6 @@ class Diag:
         """do the sysping thing
         """
         names = []
-#        ips = []
         pingoutput = ""
         pingerrors = []
 
@@ -228,11 +227,11 @@ class Diag:
             # we have what should be an IP address, output the last name:
             entrylist = line.split()
             names.append((str(entrylist[-1]), str(entrylist[0])))
-#            ips.append(str(entrylist[0])
 
         for pinghost in names:
             try:
-                pingoutput = subprocess.check_output(["/usr/bin/ping",'-c','1', pinghost[0]], stderr=subprocess.STDOUT)
+                pingoutput = subprocess.check_output(["/usr/bin/ping",'-c','1', pinghost[0]], \
+                        stderr=subprocess.STDOUT)
             except subprocess.CalledProcessError as error:
                 self.netping_lines.append("can't ping " + pinghost[0] + " by name, trying ip " + pinghost[1])
                 try:
@@ -425,10 +424,10 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         if sys.argv[1] == "-c":
             create_ini()
+            sys.exit(0)
         else:
             print "usage:", __file__, " [-c >new-ini-file] # creates new sysdiag.ini"
-
-        sys.exit(0)
+            sys.exit(1)
 
     broken = False
     diag = Diag()
@@ -499,11 +498,12 @@ if __name__ == '__main__':
     print
     print "swap dictionary:"
     pp.pprint(diag.swapinfo)
+#   """
+    pp = pprint.PrettyPrinter(indent=4)
     print
     print "services dictionary:"
     pp.pprint(diag.services)
     print
-#   """
 
 # -----------------------------------------------------------------------------
 # 
