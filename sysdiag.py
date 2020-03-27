@@ -481,6 +481,8 @@ if __name__ == '__main__':
     if not broken:
         print "    all", str(len(diag.services)) + " services are running"
 
+    print
+
     """ use this when we want to examine the dictionaries:
     pp = pprint.PrettyPrinter(indent=4)
     print
@@ -498,12 +500,11 @@ if __name__ == '__main__':
     print
     print "swap dictionary:"
     pp.pprint(diag.swapinfo)
-#   """
-    pp = pprint.PrettyPrinter(indent=4)
     print
     print "services dictionary:"
     pp.pprint(diag.services)
     print
+#   """
 
 # -----------------------------------------------------------------------------
 # 
