@@ -24,7 +24,6 @@ class Diag:
     disk_count = 0
     disks = dict()
     memory = dict()
-    my_path = ''
     network = dict()
     net_interface = ''
     services_list = []
@@ -75,13 +74,8 @@ class Diag:
         """
         for disk in self.disk_list:
             td = dict()
-            name, size, used, free, usep = self.disk_stat(disk)
-            td['name'] = name
-            td['size'] = size
-            td['used'] = used
-            td['free'] = free
-            td['usep'] = usep
-            self.disks[name] = td #[size, used, free, usep]
+            td['name'], td['size'], td['used'], td['free'], td['usep'] = self.disk_stat(disk)
+            self.disks[td['name']] = td #[size, used, free, usep]
 
     # -----------------------------------------------------------------------------
     # pretty-print the disk usage:
@@ -219,9 +213,9 @@ class Diag:
         pingoutput = ""
         pingerrors = []
 
-        hostsfile = open("/etc/hosts","r")
-        hostslines = hostsfile.readlines()
-        hostsfile.close()
+#        hostsfile = open("/etc/hosts","r")
+        with open("/etc/hosts","r") as hostsfile:
+            hostslines = hostsfile.readlines()
 
         for line in hostslines:
             # skip blanks, comments, localhost lines:
@@ -309,21 +303,21 @@ class Diag:
                service     - multiple entries for systemctl services
         """
 
-        self.my_path = os.path.dirname(__file__)
-        my_ini = self.my_path + "/sysdiag.ini"
+        my_path = ''
+        my_path = os.path.dirname(__file__)
+        my_ini = my_path + "/sysdiag.ini"
 
-        try:
-            inp = open(my_ini, "r")
-        except IOError as error:
-            print "File", my_ini + ":", error.strerror
-            sys.exit(1)
+        with open(my_ini, "r") as inp:
+            lines = inp.readlines()
+#            inp = open(my_ini, "r")
+#        except IOError as error:
+#            print "File", my_ini + ":", error.strerror
+#            sys.exit(1)
+#
+#        lines = inp.readlines()
+#        inp.close()
 
-        lines = inp.readlines()
-        inp.close()
-
-        work = subprocess.check_output(['/usr/bin/w'], stderr=subprocess.STDOUT)
-        self.uptime = ' '.join(work.split('\n')[0].split()[2:])
-
+        # process the ini lines:
         for line in lines:
             # skip blanks, comments:
             if len(line) == 1 or line.startswith('#') or len(line.strip()) == 1:
@@ -349,7 +343,14 @@ class Diag:
                 self.disk_count += 1
                 self.disk_list.append(entrylist[1])
 
+        # snag the uptime:
+        work = subprocess.check_output(['/usr/bin/w'], stderr=subprocess.STDOUT)
+        self.uptime = ' '.join(work.split('\n')[0].split()[2:])
+
+        # current date and time:
         self.datestamp = datetime.now().strftime("%Y%m%d %H:%M:%S")
+
+        # load up the dictionaries:
         self.disks_load()
         self.cpus_load()
         self.swapmem_load()
@@ -363,18 +364,19 @@ class Diag:
 # create the .ini file:
 # -----------------------------------------------------------------------------
 def create_ini():
-    sysname  = subprocess.check_output(['/usr/bin/hostname'], stderr=subprocess.STDOUT)
-    disks    = subprocess.check_output(['/usr/bin/df'], stderr=subprocess.STDOUT)
-    network  = subprocess.check_output(['/usr/sbin/ifconfig'], stderr=subprocess.STDOUT)
-    services = subprocess.check_output(['/bin/ls','/etc/init.d/'], stderr=subprocess.STDOUT)
+    """create the lines for a sysdiag.ini file.
+       Output sent to stdout, capture it as you will.
+       Be sure to edit the resulting output.
+    """
 
-    # ---------------------------------
+    # --- system name:
+    sysname = subprocess.check_output(['/usr/bin/hostname'], stderr=subprocess.STDOUT)
     print "system_name", sysname.rstrip()
     print
 
     # --- disks:
     print "# disks: please edit:"
-    disklines = disks.split('\n')
+    disklines = subprocess.check_output(['/usr/bin/df'], stderr=subprocess.STDOUT).split('\n')
     for line in disklines:
         if "tmpfs" in line:
             continue;
@@ -387,7 +389,7 @@ def create_ini():
     print
 
     # --- network interface:
-    netlines = network.split('\n')
+    netlines = subprocess.check_output(['/usr/sbin/ifconfig'], stderr=subprocess.STDOUT).split('\n')
     counter = 0
     outlines = ''
     for line in netlines:
@@ -409,10 +411,10 @@ def create_ini():
 
     # --- available services:
     print "# services: please edit:"
-    l = services.split('\n')
-    for s in l:
-        if len(s) > 0:
-            print "service", s
+    svclines = subprocess.check_output(['/bin/ls','/etc/init.d/'], stderr=subprocess.STDOUT).split('\n')
+    for svc in svclines:
+        if len(svc) > 0:
+            print "service", svc
     print
 
     # --- the end:
@@ -422,16 +424,16 @@ def create_ini():
 # main part of the program:
 # -----------------------------------------------------------------------------
 if __name__ == '__main__':
-    """If they give us a -c, create a .ini file.
+    """If they give us a -c or --create, create a .ini file.
        If they give us anything else, print a usage message.
        Otherwise, create a Diag instance and display what we find.
     """
     if len(sys.argv) > 1:
-        if sys.argv[1] == "-c":
+        if sys.argv[1] == "-c" or sys.argv[1] == "--create":
             create_ini()
             sys.exit(0)
         else:
-            print "usage:", __file__, " [-c >new-ini-file] # creates new sysdiag.ini"
+            print "usage:", __file__, " [[-c | --create] [>new-ini-file]] # creates new sysdiag.ini"
             sys.exit(1)
 
     broken = False
