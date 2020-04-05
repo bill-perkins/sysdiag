@@ -428,13 +428,58 @@ if __name__ == '__main__':
        If they give us anything else, print a usage message.
        Otherwise, create a Diag instance and display what we find.
     """
+    fl_cpu = True
+    fl_dsk = True
+    fl_mem = True
+    fl_net = True
+    fl_png = True
+    fl_svc = True
+    fl_ful = True
+
+    # check for flags:
     if len(sys.argv) > 1:
-        if sys.argv[1] == "-c" or sys.argv[1] == "--create":
+        # do the .ini file creation thing:
+        if sys.argv[1] == "--create":
             create_ini()
             sys.exit(0)
-        else:
-            print "usage:", __file__, " [[-c | --create] [>new-ini-file]] # creates new sysdiag.ini"
-            sys.exit(1)
+
+        # do the help thing:
+        if sys.argv[1] == "-h" or sys.argv[1] == "-?" or sys.argv[1] == '--help':
+            print __file__, "usage: [[--create] [>new-ini-file]] # creates new sysdiag.ini"
+            print "    -c: for CPU info"
+            print "    -d: for disk info"
+            print "    -m: for memory/swap info"
+            print "    -n: for network info"
+            print "    -p: to ping all known systems"
+            print "    -s: to check all services"
+            sys.exit(0)
+
+        # all the others:
+        if "-c" not in sys.argv:
+            fl_cpu = False
+            fl_ful = False
+
+        if "-d" not in sys.argv:
+            fl_dsk = False
+            fl_ful = False
+
+        if "-m" not in sys.argv:
+            fl_mem = False
+            fl_ful = False
+
+        if "-n" not in sys.argv:
+            fl_net = False
+            fl_ful = False
+
+        if "-p" not in sys.argv:
+            fl_png = False
+            fl_ful = False
+
+        if "-s" not in sys.argv:
+            fl_svc = False
+            fl_ful = False
+
+        # ignore any other flags we find, carry on
 
     broken = False
     diag = Diag()
@@ -447,52 +492,63 @@ if __name__ == '__main__':
         print "system:    ", diag.sysname
 
     print "uptime:    ", diag.uptime
+    print "date/time: ", diag.datestamp
     print
 
-    print "datestamp: ", diag.datestamp
-    print "disk_count:", diag.disk_count
-    print "network:   ", diag.net_interface
-    print
-
-    print "Disks:"
-    diag.disk_print()
-    print
-
-    print "CPU loads:"
-    diag.cpus_print()
-    print
-
-    print "Memory and Swap space:"
-    diag.swapmem_print()
-    print
-
-    print "Network info:"
-    diag.network_print()
-    print
-    print "Sysping:",
-    if len(diag.netping_lines) == 0:
-        print "OK"
-    else:
+    # only do these on a full output:
+    if fl_ful == True:
+        print "disk_count:", diag.disk_count
+        print "network:   ", diag.net_interface
         print
-        for l in diag.netping_lines:
-            print l
-    print
 
-    print "Services:"
-    svccount = len(diag.services)
-    svcrun   = svccount
+    if fl_dsk == True:
+        print "Disks:"
+        diag.disk_print()
+        print
 
-    for svc in diag.services:
-        x = diag.services[svc]
-        if x[0] != 'active' or (x[1] != '(running)' and x[1] != '(exited)'):
-            print "    " + svc + ":", diag.services[svc]
-            broken = True
-            svcrun -= 1
+    if fl_cpu == True:
+        print "CPU loads:"
+        diag.cpus_print()
+        print
 
-    if not broken:
-        print "    all", str(svcrun) + " services are running"
-    else:
-        print "    other", str(svcrun) + " services are running"
+    if fl_mem == True:
+        print "Memory and Swap space:"
+        diag.swapmem_print()
+        print
+
+    if fl_net == True:
+        print "Network info:"
+        diag.network_print()
+        print
+
+    if fl_png == True:
+        print "Sysping:",
+        if len(diag.netping_lines) == 0:
+            print "OK"
+        else:
+            print
+            for l in diag.netping_lines:
+                print l
+        print
+
+    if fl_svc == True:
+        print "Services:"
+        svccount = len(diag.services)
+        svcrun   = svccount
+
+        for svc in diag.services:
+            x = diag.services[svc]
+            if x[0] != 'active' or (x[1] != '(running)' and x[1] != '(exited)'):
+                print "    " + svc + ":", diag.services[svc]
+                broken = True
+                svcrun -= 1
+
+        if not broken:
+            print "    all", str(svcrun) + " services are running"
+        else:
+            print "    other", str(svcrun) + " services are running"
+
+        print
 
     print
 
