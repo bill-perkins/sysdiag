@@ -9,6 +9,7 @@ import subprocess
 import sys
 from datetime import datetime
 import pprint
+import glob
 
 # -----------------------------------------------------------------------------
 # class Diag
@@ -26,11 +27,12 @@ class Diag:
     memory = dict()
     network = dict()
     net_interface = ''
+    netping_lines = []
+    os_version = ''
     services_list = []
     services = dict()
     swapinfo = dict()
     sysname = ''
-    netping_lines = []
     uptime = ''
 
     # -----------------------------------------------------------------------------
@@ -98,7 +100,7 @@ class Diag:
     def swapmem_load(self):
         """get memory and swap information
         """
-        work = subprocess.check_output(['/usr/bin/free'], stderr=subprocess.STDOUT)
+        work = subprocess.check_output(['/usr/bin/free', '-b'], stderr=subprocess.STDOUT)
         work_strings = work.split('\n')
         headings     = work_strings[0].split()
         mem          = work_strings[1].split()
@@ -213,8 +215,7 @@ class Diag:
         pingoutput = ""
         pingerrors = []
 
-#        hostsfile = open("/etc/hosts","r")
-        with open("/etc/hosts","r") as hostsfile:
+        with open("/etc/hosts", "r") as hostsfile:
             hostslines = hostsfile.readlines()
 
         for line in hostslines:
@@ -350,6 +351,21 @@ class Diag:
         # current date and time:
         self.datestamp = datetime.now().strftime("%Y%m%d %H:%M:%S")
 
+        # get the os_version:
+        flist = ["/etc/system-release", "/etc/redhat-release", "/etc/os-release"]
+        os_version_failure = 0
+        for lclfile in flist:
+            try:
+                with open(lclfile, "r") as osfile:
+                    self.os_version = osfile.readline().rstrip()
+                    break;
+            except IOError as error:
+                os_version_failure += 1
+
+        if os_version_failure == len(flist):
+            print "Non-fatal error getting version info: can't find:", flist
+            print
+
         # load up the dictionaries:
         self.disks_load()
         self.cpus_load()
@@ -411,10 +427,20 @@ def create_ini():
 
     # --- available services:
     print "# services: please edit:"
+    print "#"
+    print "# from /etc/init.d:"
     svclines = subprocess.check_output(['/bin/ls','/etc/init.d/'], stderr=subprocess.STDOUT).split('\n')
     for svc in svclines:
         if len(svc) > 0:
             print "service", svc
+
+    svclines = glob.glob('/etc/systemd/system/*.service')
+    print "#"
+    print "# from /etc/systemd/system:"
+    for svc in svclines:
+        if len(svc) > 0:
+            print "service", os.path.basename(svc)
+
     print
 
     # --- the end:
@@ -491,6 +517,7 @@ if __name__ == '__main__':
     else:
         print "system:    ", diag.sysname
 
+    print "OS version:", diag.os_version
     print "uptime:    ", diag.uptime
     print "date/time: ", diag.datestamp
     print
