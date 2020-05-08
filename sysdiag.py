@@ -100,7 +100,8 @@ class Diag:
     def swapmem_load(self):
         """get memory and swap information
         """
-        work = subprocess.check_output(['/usr/bin/free', '-b'], stderr=subprocess.STDOUT)
+        work = subprocess.check_output(['/usr/bin/free', '-b'], \
+                stderr=subprocess.STDOUT)
         work = work.decode('utf-8')
         work = work.rstrip()
         work_strings = work.splitlines()
@@ -143,7 +144,8 @@ class Diag:
     def cpus_load(self):
         """get current load information for each CPU
         """
-        cpu_string = subprocess.check_output(['/usr/bin/mpstat','-P','ALL'], stderr=subprocess.STDOUT)
+        cpu_string = subprocess.check_output(['/usr/bin/mpstat', '-P', 'ALL'], \
+                stderr=subprocess.STDOUT)
         cpu_string = cpu_string.decode('utf-8')
         cpu_array = cpu_string.splitlines()
 
@@ -185,7 +187,8 @@ class Diag:
         """get network info
         """
         index = 5
-        net_string = subprocess.check_output(['/usr/sbin/ifconfig', self.net_interface], \
+        net_string = subprocess.check_output(['/usr/sbin/ifconfig', \
+                self.net_interface], \
                 stderr=subprocess.STDOUT)
         net_string = net_string.decode('utf-8')
         net_string = net_string.rstrip()
@@ -235,15 +238,15 @@ class Diag:
 
         for pinghost in names:
             try:
-                pingoutput = subprocess.check_output(['/usr/bin/ping','-c','1', pinghost[0]], \
-                        stderr=subprocess.STDOUT)
+                pingoutput = subprocess.check_output(['/usr/bin/ping', \
+                        '-c','1', pinghost[0]], stderr=subprocess.STDOUT)
                 pingoutput = pingoutput.decode('utf-8')
                 pingoutput = pingoutput.rstrip()
             except subprocess.CalledProcessError as error:
                 self.netping_lines.append("can't ping " + pinghost[0] + ' by name, trying ip ' + pinghost[1])
                 try:
-                    pingoutput = subprocess.check_output(['/usr/bin/ping','-c','1', pinghost[1]], \
-                            stderr=subprocess.STDOUT)
+                    pingoutput = subprocess.check_output(['/usr/bin/ping', \
+                            '-c','1', pinghost[1]], stderr=subprocess.STDOUT)
                     pingoutput = pingoutput.decode('utf-8')
                     pingoutput = pingoutput.rstrip()
                 except subprocess.CalledProcessError as error:
@@ -258,7 +261,8 @@ class Diag:
            'active/dead/whatever', 'running/exited/stopped/dead/missing'
         """
         try:
-            work = subprocess.check_output(['/usr/bin/systemctl','status',svc], stderr=subprocess.STDOUT)
+            work = subprocess.check_output(['/usr/bin/systemctl', 'status',svc], \
+                    stderr=subprocess.STDOUT)
             work = work.decode('utf-8')
             work = work.rstrip()
         except subprocess.CalledProcessError as error:
@@ -393,13 +397,17 @@ def create_ini():
     """
 
     # --- system name:
-    sysname = subprocess.check_output(['/usr/bin/hostname'], stderr=subprocess.STDOUT).decode('utf-8').rstrip()
+    sysname = subprocess.check_output(['/usr/bin/hostname'], \
+            stderr=subprocess.STDOUT)
+    sysname = sysname.decode('utf-8')
+    sysname = sysname.rstrip()
     print('system_name', sysname.rstrip())
     print()
 
     # --- disks:
     print('# disks: please edit:')
-    disklines = subprocess.check_output(['/usr/bin/df'], stderr=subprocess.STDOUT)
+    disklines = subprocess.check_output(['/usr/bin/df'], \
+            stderr=subprocess.STDOUT)
     disklinesarray = disklines.splitlines()
     disklines = []
     for line in disklinesarray:
@@ -417,8 +425,8 @@ def create_ini():
     print()
 
     # --- network interface:
-#    netlines = subprocess.check_output(['/usr/sbin/ifconfig'], stderr=subprocess.STDOUT).split('\n')
-    netlines = subprocess.check_output(['/usr/sbin/ifconfig'], stderr=subprocess.STDOUT)
+    netlines = subprocess.check_output(['/usr/sbin/ifconfig'], \
+            stderr=subprocess.STDOUT)
     netlinesarray = netlines.splitlines()
     netlines = []
     for line in netlinesarray:
@@ -531,7 +539,8 @@ if __name__ == '__main__':
     broken = False
     diag = Diag()
 
-    hostname = subprocess.check_output(['/usr/bin/hostname'], stderr=subprocess.STDOUT)
+    hostname = subprocess.check_output(['/usr/bin/hostname'], \
+            stderr=subprocess.STDOUT)
     hostname = hostname.decode('utf-8')
     hostname = hostname.rstrip()
 
