@@ -3,7 +3,6 @@
 # uses a .ini file for system-specific paramters
 #
 
-# imports:
 import os
 import subprocess
 import sys
@@ -85,13 +84,14 @@ class Diag:
     def disk_print(self):
         """pretty-print the disk stats
         """
+        print('                      size:   used:   free:  %use:')
         for index in self.disk_list:
             p = self.disks[index]
             x = index.ljust(16) + \
-                    'size: ' + self.humanize(p['size']).rjust(7)+ \
-                    '  used: ' + self.humanize(p['used']).rjust(7)+ \
-                    '  free: ' + self.humanize(p['free']).rjust(7)+ \
-                    '  %used: ' + '{:3.1f}'.format(p['usep']).rjust(4)
+                    self.humanize(p['size']).rjust(7)+ \
+                    self.humanize(p['used']).rjust(8)+ \
+                    self.humanize(p['free']).rjust(8)+ \
+                    '  ' + '{:3.1f}'.format(p['usep']).rjust(5)
             print('    ' + x)
 
     # -----------------------------------------------------------------------------
@@ -103,7 +103,7 @@ class Diag:
         work = subprocess.check_output(['/usr/bin/free', '-b'], \
                 stderr=subprocess.STDOUT)
         work = work.decode('utf-8')
-        work = work.rstrip()
+
         work_strings = work.splitlines()
         headings     = work_strings[0].split()
         mem          = work_strings[1].split()
@@ -144,10 +144,11 @@ class Diag:
     def cpus_load(self):
         """get current load information for each CPU
         """
-        cpu_string = subprocess.check_output(['/usr/bin/mpstat', '-P', 'ALL'], \
+        work = subprocess.check_output(['/usr/bin/mpstat', '-P', 'ALL'], \
                 stderr=subprocess.STDOUT)
-        cpu_string = cpu_string.decode('utf-8')
-        cpu_array = cpu_string.splitlines()
+        work = work.decode('utf-8')
+
+        cpu_array = work.splitlines()
 
         # headings holds the keys to cpus dictionary:
         headings =  cpu_array[2].split()
@@ -187,12 +188,11 @@ class Diag:
         """get network info
         """
         index = 5
-        net_string = subprocess.check_output(['/usr/sbin/ifconfig', \
-                self.net_interface], \
+        work = subprocess.check_output(['/usr/sbin/ifconfig', self.net_interface], \
                 stderr=subprocess.STDOUT)
-        net_string = net_string.decode('utf-8')
-        net_string = net_string.rstrip()
-        net_lines = net_string.splitlines()
+        work = work.decode('utf-8')
+
+        net_lines = work.splitlines()
         self.network['header'] = net_lines[0]
         self.network['address'] = net_lines[1].split()[1]
 
@@ -229,7 +229,10 @@ class Diag:
 
         for line in hostslines:
             # skip blanks, comments, localhost lines:
-            if len(line) == 1 or line.startswith('#') or line.startswith('127.0.0.1') or line.startswith('::1'):
+            if len(line) == 1 \
+                    or line.startswith('#') \
+                    or line.startswith('127.0.0.1') \
+                    or line.startswith('::1'):
                 continue
 
             # we have what should be an IP address, output the last name:
@@ -241,14 +244,15 @@ class Diag:
                 pingoutput = subprocess.check_output(['/usr/bin/ping', \
                         '-c','1', pinghost[0]], stderr=subprocess.STDOUT)
                 pingoutput = pingoutput.decode('utf-8')
-                pingoutput = pingoutput.rstrip()
+                pingoutput = pingoutput.rstrip() # single-line response needs rstrip()
+
             except subprocess.CalledProcessError as error:
                 self.netping_lines.append("can't ping " + pinghost[0] + ' by name, trying ip ' + pinghost[1])
                 try:
                     pingoutput = subprocess.check_output(['/usr/bin/ping', \
                             '-c','1', pinghost[1]], stderr=subprocess.STDOUT)
                     pingoutput = pingoutput.decode('utf-8')
-                    pingoutput = pingoutput.rstrip()
+                    pingoutput = pingoutput.rstrip() # single-line response needs rstrip()
                 except subprocess.CalledProcessError as error:
                     self.netping_lines.append("can't ping " + pinghost[0] + ' by ip: ' + pinghost[1])
 
@@ -261,18 +265,23 @@ class Diag:
            'active/dead/whatever', 'running/exited/stopped/dead/missing'
         """
         try:
-            work = subprocess.check_output(['/usr/bin/systemctl', 'status',svc], \
+            work = subprocess.check_output(['/usr/bin/systemctl', 'status', svc], \
                     stderr=subprocess.STDOUT)
             work = work.decode('utf-8')
-            work = work.rstrip()
+#            work = work.rstrip()
         except subprocess.CalledProcessError as error:
             work = error.output
 
+        svclines = work.splitlines()
+
         # take work, split it into lines, take the 3rd line, split it into parts:
         try:
-            parts = work.splitlines()[2].split()
+            parts = svclines[2].split()
         except IndexError as error:
-            return work #.split['\n'] #[2]
+            print('service_check(): len(svclines) =', len(svclines), 'Returning:')
+            print(work)
+            print()
+            return work
 
         # return active/inactive, (running/stopped/exited):
         return parts[1], parts[2]
@@ -356,7 +365,8 @@ class Diag:
         # snag the uptime:
         work = subprocess.check_output(['/usr/bin/w'], stderr=subprocess.STDOUT)
         work = work.decode('utf-8')
-        work = work.rstrip()
+        work = work.rstrip() # single-line response?...
+        # I got fancy here:
         self.uptime = ' '.join(str(work.split('\n')[0]).split()[2:])
 
         # current date and time:
@@ -400,8 +410,11 @@ def create_ini():
     sysname = subprocess.check_output(['/usr/bin/hostname'], \
             stderr=subprocess.STDOUT)
     sysname = sysname.decode('utf-8')
-    sysname = sysname.rstrip()
-    print('system_name', sysname.rstrip())
+    sysname = sysname.rstrip() # single-line response needs rstrip()
+
+    print('# sysdiag.ini:')
+    print()
+    print('system_name', sysname)
     print()
 
     # --- disks:
@@ -431,8 +444,6 @@ def create_ini():
     netlines = []
     for line in netlinesarray:
         netlines.append(line.decode('utf-8'))
-
-#    sys.exit(0)
 
     counter = 0
     outlines = ''
@@ -539,14 +550,15 @@ if __name__ == '__main__':
     broken = False
     diag = Diag()
 
-    hostname = subprocess.check_output(['/usr/bin/hostname'], \
+    lclhost = subprocess.check_output(['/usr/bin/hostname'], \
             stderr=subprocess.STDOUT)
-    hostname = hostname.decode('utf-8')
-    hostname = hostname.rstrip()
+    lclhost = lclhost.decode('utf-8')
+    lclhost = lclhost.rstrip() # single-line response needs rstrip()
 
-    if diag.sysname != hostname.rstrip():
-        print('system_name entry '' + diag.sysname + \
-                '' not the same as '' + hostname + ''')
+    if diag.sysname != lclhost:
+        # we can do better here with proper string formatting:
+        print("system_name entry '" + diag.sysname + \
+                "' not the same as '" + lclhost + "'")
     else:
         print('system:    ', diag.sysname)
 
