@@ -360,7 +360,7 @@ class Diag:
         self.uptime = ' '.join(str(work.split('\n')[0]).split()[2:])
 
         # current date and time:
-        self.datestamp = datetime.now().strftime('%Y%m%d %H:%M:%S')
+        self.datestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
         # get the os_version:
         flist = ['/etc/system-release', '/etc/redhat-release', '/etc/os-release']
