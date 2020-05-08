@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 # simple script to provide some diagnostics on local system
 # uses a .ini file for system-specific paramters
 #
@@ -42,18 +42,18 @@ class Diag:
         """turn an integer into human-readable format
         """
         if f < 1024:
-            return str(f) + "B"
+            return str(f) + 'B'
 
         if f < (1024 * 1024):
-            return '{:3.1f}'.format(f / 1024.0) + "K"
+            return '{:3.1f}'.format(f / 1024.0) + 'K'
 
         if f < (1024 * 1024 * 1024):
-            return '{:3.1f}'.format(f / 1024.0 / 1024) + "M"
+            return '{:3.1f}'.format(f / 1024.0 / 1024) + 'M'
 
         if f < (1024 * 1024 * 1024 * 1024):
-            return '{:3.1f}'.format(f / 1024.0 / 1024 / 1024) + "G"
+            return '{:3.1f}'.format(f / 1024.0 / 1024 / 1024) + 'G'
 
-        return '{:3.1f}'.format(f / 1024.0 / 1024 / 1024 / 1024) + "T"
+        return '{:3.1f}'.format(f / 1024.0 / 1024 / 1024 / 1024) + 'T'
 
     # -----------------------------------------------------------------------------
     # disk_stat(name)
@@ -88,11 +88,11 @@ class Diag:
         for index in self.disk_list:
             p = self.disks[index]
             x = index.ljust(16) + \
-                    "size: " + self.humanize(p['size']).rjust(7)+ \
-                    "  used: " + self.humanize(p['used']).rjust(7)+ \
-                    "  free: " + self.humanize(p['free']).rjust(7)+ \
-                    "  %used: " + '{:3.1f}'.format(p['usep']).rjust(4)
-            print "    " + x
+                    'size: ' + self.humanize(p['size']).rjust(7)+ \
+                    '  used: ' + self.humanize(p['used']).rjust(7)+ \
+                    '  free: ' + self.humanize(p['free']).rjust(7)+ \
+                    '  %used: ' + '{:3.1f}'.format(p['usep']).rjust(4)
+            print('    ' + x)
 
     # -----------------------------------------------------------------------------
     # swapmem_load()
@@ -101,7 +101,9 @@ class Diag:
         """get memory and swap information
         """
         work = subprocess.check_output(['/usr/bin/free', '-b'], stderr=subprocess.STDOUT)
-        work_strings = work.split('\n')
+        work = work.decode('utf-8')
+        work = work.rstrip()
+        work_strings = work.splitlines()
         headings     = work_strings[0].split()
         mem          = work_strings[1].split()
         swap         = work_strings[2].split()
@@ -118,22 +120,22 @@ class Diag:
     def swapmem_print(self):
         """pretty-print the memory and swap information
         """
-        print "    memory:"
+        print('    memory:')
         p = self.memory
-        print "             used:", self.humanize(p['used']).rjust(7)
-        print "        available:", self.humanize(p['available']).rjust(7)
-        print "             free:", self.humanize(p['free']).rjust(7)
-        print "       buff/cache:", self.humanize(p['buff/cache']).rjust(7)
-        print "           shared:", self.humanize(p['shared']).rjust(7)
-        print "            total:", self.humanize(p['total']).rjust(7)
-        print
+        print('             used:', self.humanize(p['used']).rjust(7))
+        print('        available:', self.humanize(p['available']).rjust(7))
+        print('             free:', self.humanize(p['free']).rjust(7))
+        print('       buff/cache:', self.humanize(p['buff/cache']).rjust(7))
+        print('           shared:', self.humanize(p['shared']).rjust(7))
+        print('            total:', self.humanize(p['total']).rjust(7))
+        print()
 
-        print "    swap:"
+        print('    swap:')
         p = self.swapinfo
-        print "             used:", self.humanize(p['used']).rjust(7)
-        print "             free:", self.humanize(p['free']).rjust(7)
-        print "            total:", self.humanize(p['total']).rjust(7)
-        print
+        print('             used:', self.humanize(p['used']).rjust(7))
+        print('             free:', self.humanize(p['free']).rjust(7))
+        print('            total:', self.humanize(p['total']).rjust(7))
+        print()
 
     # -----------------------------------------------------------------------------
     # cpus_load()
@@ -142,16 +144,17 @@ class Diag:
         """get current load information for each CPU
         """
         cpu_string = subprocess.check_output(['/usr/bin/mpstat','-P','ALL'], stderr=subprocess.STDOUT)
-        cpu_array = cpu_string.split('\n')
+        cpu_string = cpu_string.decode('utf-8')
+        cpu_array = cpu_string.splitlines()
 
         # headings holds the keys to cpus dictionary:
         headings =  cpu_array[2].split()
         headings[0] = 'Time'
         headings[1] = 'AM/PM'
 
-        self.cpu_count = len(cpu_array) - 5
+        self.cpu_count = len(cpu_array) - 4
 
-        for line in range(4, len(cpu_array) - 1):
+        for line in range(4, len(cpu_array)):
             cpu_parts = cpu_array[line].split()
             td = dict()
 
@@ -162,6 +165,7 @@ class Diag:
 
             self.cpus[cpu_parts[2]] = td
 
+
     # -----------------------------------------------------------------------------
     # cpus_print()
     # -----------------------------------------------------------------------------
@@ -169,10 +173,10 @@ class Diag:
         """pretty-print CPU load info we've collected
         """
         for i in range(0, self.cpu_count):
-            print "    CPU", str(i) + ":",
+            print('    CPU', str(i) + ':', end=' ')
             x = self.cpus[str(i)]
 
-            print x['%idle'] + '% idle'
+            print(x['%idle'] + '% idle')
 
     # -----------------------------------------------------------------------------
     # network_load()
@@ -183,11 +187,13 @@ class Diag:
         index = 5
         net_string = subprocess.check_output(['/usr/sbin/ifconfig', self.net_interface], \
                 stderr=subprocess.STDOUT)
-        net_lines = net_string.split('\n')
+        net_string = net_string.decode('utf-8')
+        net_string = net_string.rstrip()
+        net_lines = net_string.splitlines()
         self.network['header'] = net_lines[0]
         self.network['address'] = net_lines[1].split()[1]
 
-        if "inet6" not in net_lines[2]:
+        if 'inet6' not in str(net_lines[2]):
             index =4
 
         parts = net_lines[index].split()
@@ -212,10 +218,10 @@ class Diag:
         """do the sysping thing
         """
         names = []
-        pingoutput = ""
+        pingoutput = ''
         pingerrors = []
 
-        with open("/etc/hosts", "r") as hostsfile:
+        with open('/etc/hosts', 'r') as hostsfile:
             hostslines = hostsfile.readlines()
 
         for line in hostslines:
@@ -229,15 +235,19 @@ class Diag:
 
         for pinghost in names:
             try:
-                pingoutput = subprocess.check_output(["/usr/bin/ping",'-c','1', pinghost[0]], \
+                pingoutput = subprocess.check_output(['/usr/bin/ping','-c','1', pinghost[0]], \
                         stderr=subprocess.STDOUT)
+                pingoutput = pingoutput.decode('utf-8')
+                pingoutput = pingoutput.rstrip()
             except subprocess.CalledProcessError as error:
-                self.netping_lines.append("can't ping " + pinghost[0] + " by name, trying ip " + pinghost[1])
+                self.netping_lines.append("can't ping " + pinghost[0] + ' by name, trying ip ' + pinghost[1])
                 try:
-                    pingoutput = subprocess.check_output(["/usr/bin/ping",'-c','1', pinghost[1]], \
+                    pingoutput = subprocess.check_output(['/usr/bin/ping','-c','1', pinghost[1]], \
                             stderr=subprocess.STDOUT)
+                    pingoutput = pingoutput.decode('utf-8')
+                    pingoutput = pingoutput.rstrip()
                 except subprocess.CalledProcessError as error:
-                    self.netping_lines.append("can't ping " + pinghost[0] + " by ip: " + pinghost[1])
+                    self.netping_lines.append("can't ping " + pinghost[0] + ' by ip: ' + pinghost[1])
 
     # -----------------------------------------------------------------------------
     # service_check()
@@ -249,12 +259,14 @@ class Diag:
         """
         try:
             work = subprocess.check_output(['/usr/bin/systemctl','status',svc], stderr=subprocess.STDOUT)
+            work = work.decode('utf-8')
+            work = work.rstrip()
         except subprocess.CalledProcessError as error:
             work = error.output
 
         # take work, split it into lines, take the 3rd line, split it into parts:
         try:
-            parts = work.split('\n')[2].split()
+            parts = work.splitlines()[2].split()
         except IndexError as error:
             return work #.split['\n'] #[2]
 
@@ -276,20 +288,20 @@ class Diag:
     def network_print(self):
         """pretty-print the network information
         """
-        print "    interface:", self.network['header']
-        print "      address:", self.network['address']
+        print('    interface:', self.network['header'])
+        print('      address:', self.network['address'])
 
-        print "    RX errors:",
+        print('    RX errors:', end=' ')
         x = self.network['rx_errors']
-        for k,v in x.items():
-            print k + ":", v,
-        print
+        for k,v in list(x.items()):
+            print(k + ':', v, end=' ')
+        print()
 
-        print "    TX errors:",
+        print('    TX errors:', end=' ')
         x = self.network['tx_errors']
-        for k,v in x.items():
-            print k + ":", v,
-        print
+        for k,v in list(x.items()):
+            print(k + ':', v, end=' ')
+        print()
 
     # -----------------------------------------------------------------------------
     # __init__()
@@ -306,17 +318,10 @@ class Diag:
 
         my_path = ''
         my_path = os.path.dirname(__file__)
-        my_ini = my_path + "/sysdiag.ini"
+        my_ini = my_path + '/sysdiag.ini'
 
-        with open(my_ini, "r") as inp:
+        with open(my_ini, 'r') as inp:
             lines = inp.readlines()
-#            inp = open(my_ini, "r")
-#        except IOError as error:
-#            print "File", my_ini + ":", error.strerror
-#            sys.exit(1)
-#
-#        lines = inp.readlines()
-#        inp.close()
 
         # process the ini lines:
         for line in lines:
@@ -328,43 +333,45 @@ class Diag:
             entrylist = line.strip().split()
 
             if len(entrylist) != 2:
-                print "*** malformed line: '" + line + "'"
+                print('*** malformed line: '' + line + ''')
                 continue;
 
-            if entrylist[0] == "system_name":
+            if entrylist[0] == 'system_name':
                 self.sysname = entrylist[1]
 
-            if entrylist[0] == "network":
+            if entrylist[0] == 'network':
                 self.net_interface = entrylist[1]
 
-            if entrylist[0] == "service":
+            if entrylist[0] == 'service':
                 self.services_list.append(entrylist[1])
 
-            if entrylist[0] == "disk":
+            if entrylist[0] == 'disk':
                 self.disk_count += 1
                 self.disk_list.append(entrylist[1])
 
         # snag the uptime:
         work = subprocess.check_output(['/usr/bin/w'], stderr=subprocess.STDOUT)
-        self.uptime = ' '.join(work.split('\n')[0].split()[2:])
+        work = work.decode('utf-8')
+        work = work.rstrip()
+        self.uptime = ' '.join(str(work.split('\n')[0]).split()[2:])
 
         # current date and time:
-        self.datestamp = datetime.now().strftime("%Y%m%d %H:%M:%S")
+        self.datestamp = datetime.now().strftime('%Y%m%d %H:%M:%S')
 
         # get the os_version:
-        flist = ["/etc/system-release", "/etc/redhat-release", "/etc/os-release"]
+        flist = ['/etc/system-release', '/etc/redhat-release', '/etc/os-release']
         os_version_failure = 0
         for lclfile in flist:
             try:
-                with open(lclfile, "r") as osfile:
+                with open(lclfile, 'r') as osfile:
                     self.os_version = osfile.readline().rstrip()
                     break;
             except IOError as error:
                 os_version_failure += 1
 
         if os_version_failure == len(flist):
-            print "Non-fatal error getting version info: can't find:", flist
-            print
+            print("Non-fatal error getting version info: can't find:", flist)
+            print()
 
         # load up the dictionaries:
         self.disks_load()
@@ -386,65 +393,79 @@ def create_ini():
     """
 
     # --- system name:
-    sysname = subprocess.check_output(['/usr/bin/hostname'], stderr=subprocess.STDOUT)
-    print "system_name", sysname.rstrip()
-    print
+    sysname = subprocess.check_output(['/usr/bin/hostname'], stderr=subprocess.STDOUT).decode('utf-8').rstrip()
+    print('system_name', sysname.rstrip())
+    print()
 
     # --- disks:
-    print "# disks: please edit:"
-    disklines = subprocess.check_output(['/usr/bin/df'], stderr=subprocess.STDOUT).split('\n')
+    print('# disks: please edit:')
+    disklines = subprocess.check_output(['/usr/bin/df'], stderr=subprocess.STDOUT)
+    disklinesarray = disklines.splitlines()
+    disklines = []
+    for line in disklinesarray:
+        disklines.append(line.decode('utf-8'))
+
     for line in disklines:
-        if "tmpfs" in line:
+        if 'tmpfs' in line:
             continue;
 
         parts = line.split()
         if len(parts) != 6:
             continue;
 
-        print "disk", parts[5]
-    print
+        print('disk', parts[5])
+    print()
 
     # --- network interface:
-    netlines = subprocess.check_output(['/usr/sbin/ifconfig'], stderr=subprocess.STDOUT).split('\n')
+#    netlines = subprocess.check_output(['/usr/sbin/ifconfig'], stderr=subprocess.STDOUT).split('\n')
+    netlines = subprocess.check_output(['/usr/sbin/ifconfig'], stderr=subprocess.STDOUT)
+    netlinesarray = netlines.splitlines()
+    netlines = []
+    for line in netlinesarray:
+        netlines.append(line.decode('utf-8'))
+
+#    sys.exit(0)
+
     counter = 0
     outlines = ''
     for line in netlines:
-        if "RUNNING" in line:
+        if 'RUNNING' in line:
             parts = line.split()
-            if parts[0] != "lo:":
-                outlines += "network " + str(parts[0][:-1]) + "\n"
+            if parts[0] != 'lo:':
+                outlines += 'network ' + str(parts[0][:-1]) + '\n'
                 counter += 1
 
     if counter == 0:
-        print "# !!! no running network interfaces found !!!"
-        print
+        print('# !!! no running network interfaces found !!!')
+        print()
     elif counter > 1:
-        print "# network: choose one:"
-        print outlines
+        print('# network: choose one:')
+        print(outlines)
     else:
-        print "# network:"
-        print outlines
+        print('# network:')
+        print(outlines)
 
     # --- available services:
-    print "# services: please edit:"
-    print "#"
-    print "# from /etc/init.d:"
-    svclines = subprocess.check_output(['/bin/ls','/etc/init.d/'], stderr=subprocess.STDOUT).split('\n')
+    print('# services: please edit:')
+    print('#')
+    print('# from /etc/init.d:')
+
+    svclines = glob.glob('/etc/init.d/*')
     for svc in svclines:
         if len(svc) > 0:
-            print "service", svc
+            print('service', svc)
 
     svclines = glob.glob('/etc/systemd/system/*.service')
-    print "#"
-    print "# from /etc/systemd/system:"
+    print('#')
+    print('# from /etc/systemd/system:')
     for svc in svclines:
         if len(svc) > 0:
-            print "service", os.path.basename(svc)
+            print('service', os.path.basename(svc))
 
-    print
+    print()
 
     # --- the end:
-    print "# EOF:"
+    print('# EOF:')
 
 # -----------------------------------------------------------------------------
 # main part of the program:
@@ -465,43 +486,43 @@ if __name__ == '__main__':
     # check for flags:
     if len(sys.argv) > 1:
         # do the .ini file creation thing:
-        if sys.argv[1] == "--create":
+        if sys.argv[1] == '--create':
             create_ini()
             sys.exit(0)
 
         # do the help thing:
-        if sys.argv[1] == "-h" or sys.argv[1] == "-?" or sys.argv[1] == '--help':
-            print __file__, "usage: [[--create] [>new-ini-file]] # creates new sysdiag.ini"
-            print "    -c: for CPU info"
-            print "    -d: for disk info"
-            print "    -m: for memory/swap info"
-            print "    -n: for network info"
-            print "    -p: to ping all known systems"
-            print "    -s: to check all services"
+        if sys.argv[1] == '-h' or sys.argv[1] == '-?' or sys.argv[1] == '--help':
+            print(__file__, 'usage: [[--create] [>new-ini-file]] # creates new sysdiag.ini')
+            print('    -c: for CPU info')
+            print('    -d: for disk info')
+            print('    -m: for memory/swap info')
+            print('    -n: for network info')
+            print('    -p: to ping all known systems')
+            print('    -s: to check all services')
             sys.exit(0)
 
         # all the others:
-        if "-c" not in sys.argv:
+        if '-c' not in sys.argv:
             fl_cpu = False
             fl_ful = False
 
-        if "-d" not in sys.argv:
+        if '-d' not in sys.argv:
             fl_dsk = False
             fl_ful = False
 
-        if "-m" not in sys.argv:
+        if '-m' not in sys.argv:
             fl_mem = False
             fl_ful = False
 
-        if "-n" not in sys.argv:
+        if '-n' not in sys.argv:
             fl_net = False
             fl_ful = False
 
-        if "-p" not in sys.argv:
+        if '-p' not in sys.argv:
             fl_png = False
             fl_ful = False
 
-        if "-s" not in sys.argv:
+        if '-s' not in sys.argv:
             fl_svc = False
             fl_ful = False
 
@@ -511,93 +532,96 @@ if __name__ == '__main__':
     diag = Diag()
 
     hostname = subprocess.check_output(['/usr/bin/hostname'], stderr=subprocess.STDOUT)
-    if diag.sysname != hostname.rstrip():
-        print "system_name entry '" + diag.sysname + \
-                "' not the same as '" + str(hostname) + "'"
-    else:
-        print "system:    ", diag.sysname
+    hostname = hostname.decode('utf-8')
+    hostname = hostname.rstrip()
 
-    print "OS version:", diag.os_version
-    print "uptime:    ", diag.uptime
-    print "date/time: ", diag.datestamp
-    print
+    if diag.sysname != hostname.rstrip():
+        print('system_name entry '' + diag.sysname + \
+                '' not the same as '' + hostname + ''')
+    else:
+        print('system:    ', diag.sysname)
+
+    print('OS version:', diag.os_version)
+    print('uptime:    ', diag.uptime)
+    print('date/time: ', diag.datestamp)
+    print()
 
     # only do these on a full output:
     if fl_ful == True:
-        print "disk_count:", diag.disk_count
-        print "network:   ", diag.net_interface
-        print
+        print('disk_count:', diag.disk_count)
+        print('network:   ', diag.net_interface)
+        print()
 
     if fl_dsk == True:
-        print "Disks:"
+        print('Disks:')
         diag.disk_print()
-        print
+        print()
 
     if fl_cpu == True:
-        print "CPU loads:"
+        print('CPU loads:')
         diag.cpus_print()
-        print
+        print()
 
     if fl_mem == True:
-        print "Memory and Swap space:"
+        print('Memory and Swap space:')
         diag.swapmem_print()
-        print
+        print()
 
     if fl_net == True:
-        print "Network info:"
+        print('Network info:')
         diag.network_print()
-        print
+        print()
 
     if fl_png == True:
-        print "Sysping:",
+        print('Sysping:', end=' ')
         if len(diag.netping_lines) == 0:
-            print "OK"
+            print('OK')
         else:
-            print
+            print()
             for l in diag.netping_lines:
-                print l
-        print
+                print(l)
+        print()
 
     if fl_svc == True:
-        print "Services:"
+        print('Services:')
         svccount = len(diag.services)
         svcrun   = svccount
 
         for svc in diag.services:
             x = diag.services[svc]
             if x[0] != 'active' or (x[1] != '(running)' and x[1] != '(exited)'):
-                print "    " + svc + ":", diag.services[svc]
+                print('    ' + svc + ':', diag.services[svc])
                 broken = True
                 svcrun -= 1
 
         if not broken:
-            print "    all", str(svcrun) + " services are running"
+            print('    all', str(svcrun) + ' services are running')
         else:
-            print "    other", str(svcrun) + " services are running"
+            print('    other', str(svcrun) + ' services are running')
 
-        print
+        print()
 
-    print
+    print()
 
     """ use this when we want to examine the dictionaries:
     pp = pprint.PrettyPrinter(indent=4)
     print
-    print "CPU dictionary:"
+    print 'CPU dictionary:'
     pp.pprint(diag.cpus)
     print
-    print "disks dictionary:"
+    print 'disks dictionary:'
     pp.pprint(diag.disks)
     print
-    print "memory dictionary:"
+    print 'memory dictionary:'
     pp.pprint(diag.memory)
     print
-    print "network dictionary:"
+    print 'network dictionary:'
     pp.pprint(diag.network)
     print
-    print "swap dictionary:"
+    print 'swap dictionary:'
     pp.pprint(diag.swapinfo)
     print
-    print "services dictionary:"
+    print 'services dictionary:'
     pp.pprint(diag.services)
     print
 #   """
