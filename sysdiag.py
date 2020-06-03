@@ -10,6 +10,8 @@ from datetime import datetime
 import pprint
 import glob
 
+g_ini_file = ''
+
 # -----------------------------------------------------------------------------
 # class Diag
 # -----------------------------------------------------------------------------
@@ -333,6 +335,9 @@ class Diag:
         my_path = os.path.dirname(__file__)
         my_ini = my_path + '/sysdiag.ini'
 
+        if g_ini_file != '':
+            my_ini = g_ini_file
+
         with open(my_ini, 'r') as inp:
             lines = inp.readlines()
 
@@ -472,7 +477,7 @@ def create_ini():
     svclines = glob.glob('/etc/init.d/*')
     for svc in svclines:
         if len(svc) > 0:
-            print('service', svc)
+            print('service', os.path.basename(svc))
 
     svclines = glob.glob('/etc/systemd/system/*.service')
     print('#')
@@ -509,6 +514,11 @@ if __name__ == '__main__':
             create_ini()
             sys.exit(0)
 
+        if sys.argv[1] == '-i':
+            g_ini_file = sys.argv[2]
+            sys.argv.pop(1)
+            sys.argv.pop(1)
+
         # do the help thing:
         if sys.argv[1] == '-h' or sys.argv[1] == '-?' or sys.argv[1] == '--help':
             print(__file__, 'usage: [[--create] [>new-ini-file]] # creates new sysdiag.ini')
@@ -520,6 +530,7 @@ if __name__ == '__main__':
             print('    -s: to check all services')
             sys.exit(0)
 
+    if len(sys.argv) > 1:
         # all the others:
         if '-c' not in sys.argv:
             fl_cpu = False
