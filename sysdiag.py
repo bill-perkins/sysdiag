@@ -89,7 +89,7 @@ class Diag:
     def disk_print(self):
         """pretty-print the disk stats
         """
-        print('                      size:   used:   free:  %use:')
+        print('    filesystem:       size:   used:   free:  %use:')
         for index in self.disk_list:
             p = self.disks[index]
             x = index.ljust(16) + \
@@ -517,21 +517,25 @@ if __name__ == '__main__':
             create_ini()
             sys.exit(0)
 
+        # if they want a different .ini file:
         if sys.argv[1] == '-i':
             g_ini_file = sys.argv[2]
-            sys.argv.pop(1)
-            sys.argv.pop(1)
+            sys.argv.pop(1) # pop the flag
+            sys.argv.pop(1) # pop the filename
 
-        # do the help thing:
-        if sys.argv[1] == '-h' or sys.argv[1] == '-?' or sys.argv[1] == '--help':
-            print(__file__, 'usage: [[--create] [>new-ini-file]] # creates new sysdiag.ini')
-            print('    -c: for CPU info')
-            print('    -d: for disk info')
-            print('    -m: for memory/swap info')
-            print('    -n: for network info')
-            print('    -p: to ping all known systems')
-            print('    -s: to check all services')
-            sys.exit(0)
+        if len(sys.argv) > 1:
+            # do the help thing:
+            if sys.argv[1] == '-h' or sys.argv[1] == '-?' or sys.argv[1] == '--help':
+                print(__file__, 'usage:')
+                print('    --create to output a new .ini file')
+                print('    -i <alternate ini file> to use a different .ini file')
+                print('    -c for CPU info')
+                print('    -d for disk info')
+                print('    -m for memory/swap info')
+                print('    -n for network info')
+                print('    -p to ping all known systems')
+                print('    -s to check all services')
+                sys.exit(0)
 
     if len(sys.argv) > 1:
         # all the others:
@@ -620,19 +624,25 @@ if __name__ == '__main__':
     if fl_svc == True:
         print('Services:')
         svccount = len(diag.services)
-        svcrun   = svccount
+        running   = svccount
+        notrunning = 0
 
         for svc in diag.services:
             x = diag.services[svc]
-            if x[0] != 'active' or (x[1] != '(running)' and x[1] != '(exited)'):
+            if x[0] != 'active' or x[1] != '(running)':
                 print('    ' + svc + ':', diag.services[svc])
-                broken = True
-                svcrun -= 1
+                notrunning += 1
 
-        if not broken:
-            print('    all', str(svcrun) + ' services are running')
+        if notrunning == 0:
+            print('    all', str(running) + ' services are running')
         else:
-            print('    other', str(svcrun) + ' services are running')
+            print()
+            if notrunning == 1:
+                print('    1 service is down')
+            else:
+                print('   ', notrunning, 'services are down')
+
+            print('   ', running, 'services are running')
 
         print()
 
