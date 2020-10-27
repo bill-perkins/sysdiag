@@ -539,6 +539,9 @@ if __name__ == '__main__':
             print('    -s to check all services')
             sys.exit(0)
 
+        if arg.startswith('-'):
+            sys.argv.append(arg)
+
         # all the others:
         if '-c' not in sys.argv:
             fl_cpu = False
@@ -565,6 +568,7 @@ if __name__ == '__main__':
             fl_ful = False
 
         # ignore any other flags we find, carry on
+        break
 
     broken = False
     diag = Diag()
