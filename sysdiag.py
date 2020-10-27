@@ -325,21 +325,21 @@ class Diag:
     # __init__()
     # -----------------------------------------------------------------------------
     def __init__(self):
-        """Bring in the local .ini file
-           The .ini file consists of comments, blank lines, and key-value pairs.
-           The following keys are recognized in the .ini file:
-               system_name - the FQDN of this system
-               network     - the network interface name, shown in ifconfig
-               disk        - mulitple entries for disks we track
-               service     - multiple entries for systemctl services
+        """ Bring in the local .ini file
+            The .ini file consists of comments, blank lines, and key-value pairs.
+            The following keys are recognized in the .ini file:
+                system_name - the FQDN of this system
+                network     - the network interface name, shown in ifconfig
+                disk        - mulitple entries for disks we track
+                service     - multiple entries for systemctl services
         """
 
         my_path = ''
-        my_path = os.path.dirname(__file__)
-        my_ini = my_path + '/sysdiag.ini'
+        my_path = os.path.dirname(__file__) # find out just where we are
+        my_ini = my_path + '/sysdiag.ini'   # assume ini file is where we are
 
-        if g_ini_file != '':
-            my_ini = g_ini_file
+        if g_ini_file != '':                # if they specified a .ini file,
+            my_ini = g_ini_file             # use it instead.
 
         with open(my_ini, 'r') as inp:
             lines = inp.readlines()
@@ -510,34 +510,35 @@ if __name__ == '__main__':
     fl_svc = True
     fl_ful = True
 
+    iam = sys.argv.pop(0)
+
     # check for flags:
-    if len(sys.argv) > 1:
+    while len(sys.argv) > 0:
+        arg = sys.argv.pop(0)
+
         # do the .ini file creation thing:
-        if sys.argv[1] == '--create':
+        if arg == '--create':
             create_ini()
             sys.exit(0)
 
         # if they want a different .ini file:
-        if sys.argv[1] == '-i':
-            g_ini_file = sys.argv[2]
-            sys.argv.pop(1) # pop the flag
-            sys.argv.pop(1) # pop the filename
+        if arg == '-i':
+            g_ini_file = sys.argv.pop(0)
+            continue
 
-        if len(sys.argv) > 1:
-            # do the help thing:
-            if sys.argv[1] == '-h' or sys.argv[1] == '-?' or sys.argv[1] == '--help':
-                print(__file__, 'usage:')
-                print('    --create to output a new .ini file')
-                print('    -i <alternate ini file> to use a different .ini file')
-                print('    -c for CPU info')
-                print('    -d for disk info')
-                print('    -m for memory/swap info')
-                print('    -n for network info')
-                print('    -p to ping all known systems')
-                print('    -s to check all services')
-                sys.exit(0)
+        # do the help thing:
+        if arg == '-h' or arg == '-?' or arg == '--help':
+            print(iam, 'usage:')
+            print('    --create to output a new .ini file')
+            print('    -i <alternate ini file> to use a different .ini file')
+            print('    -c for CPU info')
+            print('    -d for disk info')
+            print('    -m for memory/swap info')
+            print('    -n for network info')
+            print('    -p to ping all known systems')
+            print('    -s to check all services')
+            sys.exit(0)
 
-    if len(sys.argv) > 1:
         # all the others:
         if '-c' not in sys.argv:
             fl_cpu = False
