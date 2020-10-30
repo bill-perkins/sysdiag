@@ -436,7 +436,7 @@ class Diag:
 
             if len(entrylist) != 2:
                 print('*** malformed line: ' + line)
-                continue;
+                continue
 
             if entrylist[0] == 'system_name':
                 self.sysname = entrylist[1]
@@ -519,11 +519,11 @@ def create_ini():
 
     for line in disklines:
         if 'tmpfs' in line:
-            continue;
+            continue
 
         parts = line.split()
         if len(parts) != 6:
-            continue;
+            continue
 
         print('disk', parts[5])
     print()
@@ -717,27 +717,30 @@ if __name__ == '__main__':
         unknown = 0
 
         for svc in diag.services:
+#            y = str(diag.services[svc].decode('utf-8'))
+#            y = str(diag.services[svc])
             x = diag.services[svc].split()
+            y = ' '.join(x)
             if len(x) > 0:
                 if 'running...' in x:
-                    print('    ', diag.services[svc])
+                    print('    ', y)
                     continue
 
                 if 'not' in x or 'stopped' in x:
                     notrunning += 1
-                    print('    ', diag.services[svc])
-                    continue;
+                    print(y)
+                    continue
 
                 if 'unknown' in x:
                     unknown += 1
-                    print('    ', diag.services[svc])
-                    continue;
+                    print('    ', y)
+                    continue
 
                 if 'Usage:' in x:
                     print('EDIT:', svc, 'in sysdiag.ini')
                     continue
 
-                print('     svc', svc, ':', diag.services[svc])
+                print('     svc', svc, ':', y)
                 continue
 
         if notrunning == 0:
