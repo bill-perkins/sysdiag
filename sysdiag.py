@@ -636,7 +636,7 @@ if __name__ == '__main__':
             x = diag.services[svc]
             if x[0] != 'active' or x[1] != '(running)':
                 print('    ' + svc + ':', diag.services[svc])
-                if not os.path.isfile("/var/run/sas" + svc):
+                if os.path.isdir("/var/run/sas") and not os.path.isfile("/var/run/sas" + svc):
                     print('   !' + svc + ': pid file missing')
                 notrunning += 1
 
