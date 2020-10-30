@@ -113,8 +113,6 @@ class Diag:
             p = self.disks[index]
             usep    = p['usep']
             usepstr = '{0:3.1f}'.format(usep)
-#            free    = p['free']
-#            freestr = '{0:3.1f}'.format(free)
 
             try:
                 x = index.ljust(16) + \
@@ -125,6 +123,7 @@ class Diag:
             except AttributeError as error:
                 print('error:', error)
                 print('freestr:', freestr)
+
             print('    ' + x)
 
     # -----------------------------------------------------------------------------
@@ -133,7 +132,6 @@ class Diag:
     def swapmem_load(self):
         """get memory and swap information
         """
-#        work = subprocess.check_output(['/usr/bin/free', '-b'], stderr=subprocess.STDOUT)
         cmd = subprocess.Popen(['/usr/bin/free', '-b'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         result = cmd.communicate()
         work = result[0].decode('utf-8').rstrip()
@@ -193,7 +191,6 @@ class Diag:
         # no mpstat in Centos6.3:
         return None
 
-#        work = subprocess.check_output(['/usr/bin/mpstat', '-P', 'ALL'], stderr=subprocess.STDOUT)
         cmd = subprocess.Popen(['/usr/bin/mpstat', '-P', 'ALL'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         result = cmd.communicate()
         work = result[0].decode('utf-8').rstrip()
@@ -361,7 +358,6 @@ class Diag:
            'active/dead/whatever', 'running/exited/stopped/dead/missing'
         """
         try:
-# cmd = subprocess.Popen(['/usr/bin/systemctl', 'status', svc], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             cmd = subprocess.Popen(['/sbin/service', svc, 'status'], \
                     stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             result = cmd.communicate()
@@ -372,32 +368,6 @@ class Diag:
         svclines = work.splitlines()
         if len(work) != 0:
             return work
-#            if 'Usage: ' in work:
-#                return 'usage message'
-#
-#            if 'is running' in work:
-#                return work
-#
-#            if 'is stopped' in work:
-#                return work
-#
-#            print()
-#            print('work:', work)
-#            print('svclines:', svclines)
-#
-#        # take work, split it into lines, take the 3rd line, split it into parts:
-#        try:
-#            parts = svclines[2].split()
-#        except IndexError as error:
-#            return 'missing', 'gone'
-#
-#            #print('service_check(): len(svclines) =', len(svclines), 'Returning:')
-#            #print(work)
-#            #print()
-#            #return work
-#
-#        # return active/inactive, (running/stopped/exited):
-##        return parts[1], parts[2]
         return work
 
     # -----------------------------------------------------------------------------
@@ -482,7 +452,6 @@ class Diag:
                 self.disk_list.append(entrylist[1])
 
         # snag the uptime:
-#        work = subprocess.check_output(['/usr/bin/w'], stderr=subprocess.STDOUT)
         cmd = subprocess.Popen(['/usr/bin/w'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         result = cmd.communicate()
         work = result[0].decode('utf-8').rstrip()
@@ -528,7 +497,6 @@ def create_ini():
     """
 
     # --- system name:
-#    sysname = subprocess.check_output(['/usr/bin/hostname'], stderr=subprocess.STDOUT)
     cmd = subprocess.Popen(['/bin/hostname'], stdout=subprocess.PIPE)
     result = cmd.communicate()
     sysname = result[0].decode('utf-8').rstrip()
@@ -540,7 +508,6 @@ def create_ini():
 
     # --- disks:
     print('# disks: please edit:')
-#    disklines = subprocess.check_output(['/usr/bin/df'], stderr=subprocess.STDOUT)
     cmd    = subprocess.Popen(['/bin/df'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     result = cmd.communicate()
     disklines = result[0].decode('utf-8').rstrip()
@@ -562,7 +529,6 @@ def create_ini():
     print()
 
     # --- network interface:
-#    netlines = subprocess.check_output(['/usr/sbin/ifconfig'], stderr=subprocess.STDOUT)
     cmd = subprocess.Popen(['/sbin/ifconfig'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     result = cmd.communicate()
     netlines = result[0].decode('utf-8').rstrip()
@@ -691,7 +657,6 @@ if __name__ == '__main__':
     broken = False
     diag = Diag()
 
-#    lclhost = subprocess.check_output(['/usr/bin/hostname'], stderr=subprocess.STDOUT)
     cmd = subprocess.Popen(['/bin/hostname'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     result = cmd.communicate()
     lclhost = result[0].decode('utf-8').rstrip() # single-line response needs rstrip()
