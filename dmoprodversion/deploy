@@ -1,1 +1,5 @@
 scp sysdiag.ini dmoprod:
+scp sysdiag.ini dmoprod02:
+scp sysdiag.ini dmopdev:
+scp sysdiag.ini skybot:
+
