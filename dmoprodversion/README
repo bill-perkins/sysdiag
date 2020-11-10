@@ -1,0 +1,11 @@
+# This version of sysdiag.py is set up for dmoprod, dmodev, and dmoprod02
+# that are running RedHat/CentOS 6.x
+# There is no python3 for RedHat/Centos 6.x
+# There is no pdb for RedHat/Centos 6.x
+#
+# dmoprod02 is on CentOS 6.10
+# dmoprod   is on CentOS 6.3
+# dmodev    is on CentOS 6.3
+# skybot    is on Centos 6.8
+#
+# EOF:
